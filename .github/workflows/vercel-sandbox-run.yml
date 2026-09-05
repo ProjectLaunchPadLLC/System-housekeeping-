@@ -1,0 +1,48 @@
+name: Run System-housekeeping in Vercel Sandbox
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  sandbox-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Vercel Sandbox CLI
+        run: |
+          npm install -g vercel
+          npm install -g @vercel/sandbox
+
+      - name: Authenticate with Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "❌ Missing VERCEL_TOKEN secret"
+            exit 1
+          fi
+          vercel login --token "$VERCEL_TOKEN"
+
+      - name: Execute Run.py inside Vercel Sandbox
+        run: |
+          echo "🚀 Running housekeeping script inside Vercel Sandbox..."
+          python3 scripts/sandbox_runner.py \
+            --name housekeeping-runner \
+            --scope ai-research \
+            --network-policy deny-all \
+            -- python3 Run.py
